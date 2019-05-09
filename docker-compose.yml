@@ -1,0 +1,66 @@
+version: "3"
+
+services:
+  node-exporter:
+    image: prom/node-exporter:v0.17.0
+    ports:
+      - "9100:9100"
+    deploy:
+      mode: global
+
+  cadvisor:
+    image: google/cadvisor:v0.33.0
+    ports:
+      - 9200:8080
+    deploy:
+      mode: global
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+
+  prometheus:
+    image: prom/prometheus:v2.9.2
+    volumes:
+      - /home/centos/emm_swarm/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+    ports:
+      - "9090:9090"
+    deploy:
+      placement:
+        constraints: [node.labels.emm_swarm_01 == true]
+
+  grafana:
+    image: grafana/grafana:6.1.6
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=pass
+    depends_on:
+      - prometheus
+    ports:
+      - "3000:3000"
+    volumes:
+      - /home/centos/emm_swarm:/var/lib/grafana
+    deploy:
+      placement:
+        constraints: [node.labels.emm_swarm_01 == true]
+
+  autoscaler:
+    image: sahajsoft/docker-swarm-service-autoscaler:latest
+    command: "/etc/docker-swarm-service-autoscaler/autoscaler.yml --log-leve=DEBUG"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - /home/centos/emm_swarm/autoscaler.yml:/etc/docker-swarm-service-autoscaler/autoscaler.yml
+    deploy:
+      placement:
+        constraints: [node.labels.emm_swarm_01 == true]
+
+  emm_swarm:
+    image: 890257458441.dkr.ecr.ap-northeast-2.amazonaws.com/emm:latest
+    ports:
+      - "80:8080"
+    volumes:
+       - /data/storage:/data/storage
+    environment:
+      - CATALINA_OPTS=-Ddb.url=emm.c1q2oim5tsyp.ap-northeast-2.rds.amazonaws.com:31433 -Ddb.name=EMMSVCDB -Ddb.user=EMMSVC -Ddb.pwd=mobile1!
