@@ -62,6 +62,7 @@ services:
        - /data/storage:/data/storage
     environment:
       - CATALINA_OPTS=-Ddb.url=emm.c1q2oim5tsyp.ap-northeast-2.rds.amazonaws.com:31433 -Ddb.name=EMMSVCDB -Ddb.user=EMMSVC -Ddb.pwd=mobile1!
+      - JAVA_OPTS=-Djava.security.egd=file:/dev/./urandom
     deploy:
       labels:
         - "traefik.backend=emm_swarm"
